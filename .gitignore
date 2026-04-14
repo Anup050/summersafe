@@ -34,9 +34,14 @@ Thumbs.db
 # Vercel
 .vercel
 
+# Local Kubernetes Secrets
+k8s/*secrets.yaml
+!k8s/secrets.example.yaml
 # Coverage
 coverage/
 
 # Misc
 *.tgz
 .cache
+
+.vercel

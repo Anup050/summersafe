@@ -1,4 +1,17 @@
 require("dotenv").config();
+const winston = require('winston');
+
+// Configure Winston Logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console()
+  ]
+});
 const express = require("express");
 const path = require("path");
 const exphbs = require('express-handlebars');
@@ -20,7 +33,7 @@ app.use(express.static(static_path));
 
 
 app.use(session({
-    secret: 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true
 }));
@@ -58,7 +71,7 @@ app.get("/contact",(req,res)=>{
 app.get("/logout", (req, res) => {
     req.session.destroy((err) => {
         if (err) {
-            console.log("Error destroying session:", err);
+            logger.error("Error destroying session:", { error: err.message || err });
             return res.status(500).send("Error logging out");
         }
         res.redirect("/");
@@ -82,7 +95,7 @@ app.get("/profile", async (req, res) => {
         // Render profile page with user data
         res.render("profile", { userData: user,bookings:bookings });
     } catch (error) {
-        console.log("Error fetching user data:", error);
+        logger.error("Error fetching user data:", { error: error.message || error });
         res.status(500).send("Internal Server Error");
     }
 });
@@ -101,7 +114,7 @@ app.post("/register", async (req, res) => {
             });
 
             const registered = await registerUser.save();
-            console.log("User registered:", registered);
+            logger.info("User registered:", { email: registered.email });
 
             // Store user's email in session
             req.session.userEmail = req.body.email;
@@ -109,11 +122,11 @@ app.post("/register", async (req, res) => {
             // Redirect to profile page after successful registration
             res.status(201).redirect("/");
         } else {
-            console.log("Passwords do not match");
+            logger.warn("Registration failed: Passwords do not match", { email: req.body.email });
             res.send("Passwords do not match");
         }
     } catch (error) {
-        console.log("Error during registration:", error);
+        logger.error("Error during registration:", { error: error.message || error });
         res.status(400).send(error);
     }
 });
@@ -122,7 +135,7 @@ app.post("/login", async (req, res) => {
     try {
         const email = req.body.email;
         const password = req.body.password;
-        console.log(`${email} and password is ${password}`);
+        logger.info("Login attempt:", { email });
 
         // Find user in the database based on the email
         const user = await Register.findOne({ email: email });
@@ -144,7 +157,7 @@ app.post("/login", async (req, res) => {
         }
 
     } catch (error) {
-        console.log("Error during login:", error);
+        logger.error("Error during login:", { error: error.message || error });
         res.status(500).send("Internal Server Error");
     }
 });
@@ -180,7 +193,7 @@ app.post('/booking-summary', async (req, res) => {
         const userEmail = req.session.userEmail;
 
         if (!userEmail) {
-            console.log("User not logged in. Redirecting to login page.");
+            logger.info("Booking attempt by unauthenticated user, redirecting to login");
             return res.redirect('/login');
         }
 
@@ -214,7 +227,7 @@ app.post('/booking-summary', async (req, res) => {
             totalPrice
         });
     } catch (error) {
-        console.error("Error saving booking:", error);
+        logger.error("Error saving booking:", { error: error.message || error });
         res.status(500).send("Internal Server Error");
     }
 });
@@ -226,5 +239,7 @@ app.post('/checkout', async (req, res) => {
 
 
 app.listen(port, () => {
-    console.log(`server is running at port no ${port}`)
+    logger.info(`server is running at port no ${port}`);
 });
+
+module.exports = app;
