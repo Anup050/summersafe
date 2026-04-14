@@ -9,13 +9,15 @@
     "mongodb": "^7.1.1",
     "mongoose": "^8.3.0",
     "nodemon": "^3.1.0",
-    "npm": "^10.5.1"
+    "npm": "^10.5.1",
+    "winston": "^3.19.0"
   },
   "name": "backend",
   "version": "1.0.0",
   "main": "src/app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/app.js",
     "dev": "nodemon src/app.js -e js,hbs"
   },
   "keywords": [],

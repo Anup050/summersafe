@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: summersafe-deployment
+  labels:
+    app: summersafe
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: summersafe
+  template:
+    metadata:
+      labels:
+        app: summersafe
+    spec:
+      containers:
+        - name: summersafe
+          image: DOCKER_USERNAME/summersafe:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: summersafe-secrets
+                  key: MONGODB_URI
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: summersafe-secrets
+                  key: SESSION_SECRET
