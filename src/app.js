@@ -13,12 +13,26 @@ const logger = winston.createLogger({
   ]
 });
 const express = require("express");
+const client = require("prom-client");
 const path = require("path");
 const exphbs = require('express-handlebars');
 const session = require('express-session');
 const Register = require("./models/registers");
 const Booking = require("./models/booking"); // Require the booking model
 const app = express();
+// Prometheus metrics setup
+const register = new client.Registry();
+
+// collect default system metrics
+client.collectDefaultMetrics({ register });
+
+// custom metric
+const httpRequests = new client.Counter({
+  name: "http_requests_total",
+  help: "Total HTTP requests",
+});
+
+register.registerMetric(httpRequests);
 const hbs = require("hbs");
 require("./db/conn");
 
@@ -30,6 +44,10 @@ const partials_path = path.join(__dirname, "../templates/partials");
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(static_path));
+app.use((req, res, next) => {
+  httpRequests.inc();
+  next();
+});
 
 
 app.use(session({
@@ -237,6 +255,10 @@ app.post('/checkout', async (req, res) => {
     res.redirect('/order-success');
 });
 
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
+});
 
 app.listen(port, () => {
     logger.info(`server is running at port no ${port}`);
